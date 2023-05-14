@@ -8,3 +8,4 @@ Utility scripts for quickly making lists of prices for a bandcamp page or for a 
 - Move Python script to JS for consistency
 - Look into why first page of wishlist isn't scraped
 - Improve programmatic interface to avoid hardcoded vars
+- Get rid of pandas dep
