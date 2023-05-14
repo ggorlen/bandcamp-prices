@@ -1,15 +1,18 @@
 {
   "name": "bandcamp-prices",
   "version": "1.0.0",
-  "description": "",
+  "description": "scraper for bandcamp prices",
   "main": "bandcamp-prices.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "ggorlen",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.24.0",
-    "cheerio": "*"
+    "cheerio": "1.0.0-rc.12"
+  },
+  "engines": {
+    "node": ">=18.0.0 <19.0.0",
+    "npm": ">=9.0.0"
   }
 }
