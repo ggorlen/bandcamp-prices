@@ -1,39 +1,64 @@
 /* script to show prices of all items on a bandcamp artist page */
 
 const cheerio = require("cheerio");
+const puppeteer = require("puppeteer");
 
-const getText = url =>
-  fetch(url)
-    .then(res => {
-      if (!res.ok) {
-        throw Error(res.statusText);
-      }
+const userAgent =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:136.0) Gecko/20100101 Firefox/136.0";
 
-      return res.text();
-    });
+const getText = async (url) => {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": userAgent,
+    },
+  });
 
-const allPrices = async baseUrl => {
-  const $ = cheerio.load(await getText(baseUrl));
-  const albums = [...$(".music-grid-item a")]
-    .map(e => $(e).attr("href"));
-
-  const prices = [];
-  for (const album of albums) {
-    const $ = cheerio.load(await getText(baseUrl + album));
-    $(".buyItem.digital .nobreak").each((_, e) => {
-      prices.push([
-        baseUrl + album,
-        $(e)
-          .text()
-          .replace(/\s{2,}/g, " ")
-          .replace("or more", "")
-          .trim()
-      ]);
-    });
+  if (!res.ok) {
+    throw Error(res.statusText);
   }
-
-  return prices;
+  return res.text();
 };
 
+async function* allPrices(baseUrl) {
+  let browser;
+  try {
+    browser = await puppeteer.launch();
+    const [page] = await browser.pages();
+    await page.setUserAgent(userAgent);
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    const albumUrls = await page.$$eval(".music-grid-item a", (els) =>
+      els.map((e) => e.href),
+    );
+    await browser.close();
+    const prices = [];
+
+    for (const url of albumUrls) {
+      const $ = cheerio.load(await getText(url));
+
+      for (const e of [...$(".buyItem.digital .nobreak")]) {
+        const album = {
+          url,
+          title: $("h2.trackTitle").text().trim(),
+          artist: $("#name-section a").text().trim(),
+          price: $(e)
+            .text()
+            .replace(/\s{2,}/g, " ")
+            .replace("or more", "")
+            .trim(),
+        };
+        yield album;
+      }
+    }
+
+    return prices;
+  } finally {
+    await browser?.close();
+  }
+}
+
 const baseUrl = process.argv[2] || "https://aleksiperala.bandcamp.com";
-allPrices(baseUrl).then(prices => console.table(prices));
+(async () => {
+  for await (const album of allPrices(baseUrl)) {
+    console.log(album);
+  }
+})();
